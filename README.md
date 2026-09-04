@@ -1,115 +1,109 @@
 # Hermes Unrestricted
 
-> MIT-licensed modded build of [Hermes Agent](https://github.com/NousResearch/hermes-agent) 0.19.0 — unrestricted tool approvals, uncensored persona prompting, and a Telegram bridge.
+> Hermes Agent 0.19.0 无限制改造版（MIT 许可）——解除工具审批、内容过滤与提示词纪律，自带 Telegram 桥接。
 
-**⚠️ All API keys are user-supplied. This repo contains no credentials.**
+**⚠️ 本仓库不含任何 API Key 与私人端点。所有凭据由使用者自行配置。**
 
-## What's inside
+## 目录结构
 
-| Path | Purpose |
+| 路径 | 说明 |
 |---|---|
-| `unrestricted/` | 19 patch files for `hermes-agent==0.19.0` — every patch is marked with a `_UNRESTRICTED_` tag for easy audit and rollback |
-| `config/SOUL.md` | Seagull persona (CTF/reversing coach) + unrestricted creation overlay (identity-first ordering, required) |
-| `scripts/hermes-tg-bridge.py` | Standalone Telegram bot bridge (proxy support, chunked replies, typing indicator) |
-| `scripts/services/` | launchd + systemd service templates for production |
-| `start.sh` | Idempotent installer: patches → persona → verify → CLI/Telegram launcher |
-| `.env.example` | Template — bot token / provider keys / proxy |
+| `unrestricted/` | 19 个补丁文件（针对 `hermes-agent==0.19.0`），每处改动带 `_UNRESTRICTED_` 标记，便于审计与回滚 |
+| `config/SOUL.md` | 海鸥人格（CTF/逆向教练）+ 无限制创作授权层（身份前置排序，不可省略） |
+| `scripts/hermes-tg-bridge.py` | 独立 Telegram 桥接进程（代理支持、分片回发、typing 指示） |
+| `scripts/services/` | launchd + systemd 生产常驻服务模板 |
+| `start.sh` | 幂等安装器：打补丁 → 部署人设 → 验证 → CLI/Telegram 启动 |
+| `.env.example` | 配置模板（bot token / 供应商 key / 代理） |
 
-## Why this exists
+## 为什么存在
 
-Stock Hermes ships with safety layers that are useful for its default audience but get in the way of "bring-your-own-model, do-what-I-ask" deployments:
+官方 Hermes 内置的安全层面向默认受众，但在"自带模型、按我要求干活"的部署场景下会碍事：
 
-- **Tool approvals** — dangerous-command prompts, hardline blocklist, approvals.deny
-- **File safety** — read/write denylists for credentials and home dirs
-- **Content scanning** — threat-pattern scanners that can silently drop SOUL.md/AGENTS.md
-- **Output sanitizers** — reasoning-block stripping, image/non-ASCII stripping, secret redaction, truncation caps
-- **Prompt discipline** — tool-use enforcement, model-execution guidelines, verify-on-stop nudges
+- **工具审批** —— 危险命令确认、hardline 黑名单、approvals.deny
+- **文件安全** —— 凭证与家目录的读写黑名单
+- **内容扫描** —— 威胁模式扫描器可能静默丢弃 SOUL.md / AGENTS.md
+- **输出清洗** —— 思考块剥离、图片/非 ASCII 剥离、密钥打码、截断上限
+- **提示词纪律** —— 强制用工具、模型执行准则、编辑后强制验证等
 
-This build disables those layers at the source, so the model sees exactly what the user asked — nothing more, nothing less.
+本版本在源头解除这些层：模型看到的即是用户要求的，不多不少。
 
-## Install
+## 模型供应商
 
-Requires Python 3.12 and `hermes-agent==0.19.0`:
+**支持任意 OpenAI 兼容接口（chat/completions 或 responses 协议均可）**——在 `config.yaml` 的 `custom_providers` 里声明即可，不限特定的供应商或模型：
+
+```yaml
+# config.yaml（使用方自行配置）
+custom_providers:
+- name: my-provider          # 自定义名字
+  base_url: https://你的端点/v1   # ← 注意必须带 /v1
+  api_key: 你的_key
+  api_mode: chat_completions  # 或 codex_responses
+  models:
+    my-model:
+      name: my-model
+  model: my-model
+model:
+  default: my-model
+  provider: my-provider
+```
+
+> **注意：`base_url` 必须包含 `/v1`** —— 缺失时服务器返回 HTML 页面（而非 SSE），表现为空流错误。
+
+命令行指定模型：
+
+```bash
+hermes -z "你的问题" --provider my-provider -m my-model
+```
+
+## 安装
+
+要求 Python 3.12 与 `hermes-agent==0.19.0`：
 
 ```bash
 python3 -m pip install hermes-agent==0.19.0
 git clone https://github.com/TLcmmmm/hermes-unrestricted.git
 cd hermes-unrestricted
-cp .env.example .env   # fill in your keys
-./start.sh             # idempotent: patch + persona + verify
+cp .env.example .env   # 填入你的 key
+./start.sh             # 幂等：补丁 + 人设 + 验证
 ```
 
-## Usage
+## 使用
 
 ```bash
-./start.sh cli          # interactive CLI
-./start.sh tg-daemon    # Telegram bridge (background)
-./start.sh tg           # Telegram bridge (foreground, debug)
-./start.sh tg-stop      # stop bridge
-tail -f bridge.log      # bridge logs
+./start.sh cli          # 交互式 CLI
+./start.sh tg-daemon    # Telegram 桥接（后台）
+./start.sh tg           # Telegram 桥接（前台调试）
+./start.sh tg-stop      # 停止桥接
+tail -f bridge.log      # 桥接日志
 ```
 
-Verify the persona:
+验证人设：
 
 ```bash
-hermes -z "在吗" --provider opencode-go -m deepseek-v4-flash
+hermes -z "在吗" --provider my-provider -m my-model
 # → 海鸥在线，你要整点薯条吗？
 ```
 
-## Model providers
+## 补丁清单
 
-Two providers are pre-configured in the README/docs and switchable via `.env`:
+以下 19 个文件相对官方 0.19.0 wheel 修改，所有改动点带 `_UNRESTRICTED_` 标记：
 
-| Provider | Endpoint | Model | Notes |
-|---|---|---|---|
-| opencode-go | `<your endpoint>/v1` | `deepseek-v4-flash` | Fast (~20-30s), no proxy needed in many regions |
-| grok-4.6 | `<your endpoint>/v1` | `grok-4.6` | Richer prose, slower (~40-60s), proxy recommended |
+- **工具层**：`tools/approval.py`（审批/hardline/黑名单）、`file_safety.py`（读写黑名单）、`tool_guardrails.py`（循环护栏）、`verification_stop.py`（强制验证）、`tirith_security.py`（命令扫描）、`memory_tool.py`（记忆扫描）、`skills_guard.py`（技能安装扫描）、`url_safety.py`（内网 URL 拦截）、`tool_output_limits.py`（截断上限）
+- **协议层**：`think_scrubber.py` + `run_agent.py` + `agent_runtime_helpers.py`（思考块剥离）、`message_sanitization.py`（图片/非 ASCII 剥离）、`prompt_builder.py`（上下文文件注入扫描）
+- **提示词层**：`prompt_builder.py`（9 个纪律块置空）、`system_prompt.py`（模型准则注入分支）
+- **其他**：`hermes_cli/mcp_security.py`、`model_cost_guard.py`、`redact.py`，迭代上限 90 → 999999
 
-> **Note:** `base_url` must include `/v1` — omitting it makes the server return an HTML page (not SSE), which surfaces as an empty stream.
-
-```yaml
-# config.yaml (client-side)
-custom_providers:
-- name: grok46
-  base_url: https://<your-grok-endpoint>
-  api_key: <your key>
-  api_mode: chat_completions
-  models:
-    grok-4.6:
-      name: grok-4.6
-  model: grok-4.6
-```
-
-Telegram bridge model switch via `.env`:
-
-```bash
-HERMES_MODEL=deepseek-v4-flash
-HERMES_PROVIDER=opencode-go
-# or
-HERMES_MODEL=grok-4.6
-HERMES_PROVIDER=grok46
-```
-
-## What is patched
-
-All 19 files below are modified from the official 0.19.0 wheel; every change site carries `_UNRESTRICTED_`:
-
-- **Tools layer**: `tools/approval.py` (approvals/hardline/denylist), `file_safety.py` (read/write denylists), `tool_guardrails.py` (loop guard), `verification_stop.py` (verify-on-stop), `tirith_security.py` (command scanner), `memory_tool.py` (memory scanner), `skills_guard.py` (skill install scanner), `url_safety.py` (private-url block), `tool_output_limits.py` (truncation caps)
-- **Protocol layer**: `think_scrubber.py` + `run_agent.py` + `agent_runtime_helpers.py` (reasoning-block stripping), `message_sanitization.py` (image/non-ASCII stripping), `prompt_builder.py` (context-file injection scanner)
-- **Prompt layer**: `prompt_builder.py` (9 discipline blocks → null), `system_prompt.py` (model-guidance injection branch)
-- **Other**: `hermes_cli/mcp_security.py`, `model_cost_guard.py`, `redact.py`, iteration cap 90 → 999999
-
-## Rollback
+## 回滚
 
 ```bash
 python3 -m pip install --force-reinstall hermes-agent==0.19.0
-# or re-run ./start.sh after any official upgrade (idempotent)
+# 官方升级后重跑 ./start.sh 即可恢复全部补丁（幂等）
 ```
 
-## License
+## 许可证
 
-[MIT](LICENSE) — patches and scripts herein are modifications of Hermes Agent, Copyright (c) 2025 Nous Research, distributed under the MIT License. This repository is not affiliated with or endorsed by Nous Research.
+[MIT](LICENSE) — 本仓库为 Hermes Agent 的修改件，原项目 Copyright (c) 2025 Nous Research，依 MIT 许可分发。本仓库与 Nous Research 无隶属或背书关系。
 
-## Disclaimer
+## 免责声明
 
-This is a tool for your own models and your own deployments. You are responsible for what you run it against, what you generate with it, and the accounts it touches. The author takes no responsibility for misuse.
+本工具用于你自己的模型与自己的部署。你须对自己运行的对象、生成的内容及涉及的账号负责。作者不对滥用承担任何责任。
