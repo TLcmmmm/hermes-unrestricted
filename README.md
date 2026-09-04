@@ -67,6 +67,47 @@ cp .env.example .env   # 填入你的 key
 ./start.sh             # 幂等：补丁 + 人设 + 验证
 ```
 
+## 让 AI 帮你部署
+
+把下面这段提示词整体复制，发给任意 AI 助手（ChatGPT / Claude / Kimi / DeepSeek 等），它会帮你在本机完成部署：
+
+```
+请帮我部署一个名为 hermes-unrestricted 的开源项目（GitHub: TLcmmmm/hermes-unrestricted，Hermes Agent 0.19.0 的无限制改造版）。
+
+环境要求：Python 3.12（请先确认本机 python3 --version，不足则先安装）。
+
+请按以下步骤在本机终端执行，并在每步完成后检查输出、及时处理报错：
+
+1. 安装基础依赖：
+   python3 -m pip install hermes-agent==0.19.0
+
+2. 克隆仓库到当前目录：
+   git clone https://github.com/TLcmmmm/hermes-unrestricted.git
+   cd hermes-unrestricted
+
+3. 复制配置模板并让用户填写（请提示用户打开 .env 文件，填入自己的配置）：
+   cp .env.example .env
+   需要用户提供：
+   - TELEGRAM_BOT_TOKEN：Telegram bot token（@BotFather 创建，如果用户要接 Telegram）
+   - 模型供应商信息（API key / base_url / 模型名，在 ~/.hermes/config.yaml 的 custom_providers 里配置）
+   - TELEGRAM_PROXY：代理地址（国内访问 Telegram 需要，如 http://127.0.0.1:7890）
+
+4. 运行安装器（自动打补丁 + 部署人设 + 验证，幂等可重复执行）：
+   bash start.sh
+
+5. 验证安装：
+   - 确认输出包含「[ok] 审批放行 ✓」「[ok] SOUL 人设加载 ✓」
+   - 运行 hermes -z "在吗" --provider <供应商名> -m <模型名>，预期回复「海鸥在线，你要整点薯条吗？」
+
+6. 接线 Telegram（可选）：
+   - 前台调试：bash start.sh tg
+   - 后台运行：bash start.sh tg-daemon（日志 tail -f bridge.log）
+
+如果某一步报错，请先读取报错信息，检查网络（GitHub/PyPI/Telegram 可能需要代理）、Python 版本、依赖是否齐全，修复后继续。全部完成后，用简洁的中文向我汇报部署结果和验证证据。
+```
+
+> 提示：AI 助手需要能执行终端命令才能自动完成；若它只能给建议，把它的输出当作操作指引手动执行即可。
+
 ## 使用
 
 ```bash
