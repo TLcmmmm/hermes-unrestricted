@@ -57,22 +57,47 @@ hermes -z "你的问题" --provider my-provider -m my-model
 
 ## 安装
 
-要求 Python 3.12 与 `hermes-agent==0.19.0`：
+要求 Python 3.12 与 `hermes-agent==0.19.0`。**你只需要准备三样东西：接口 URL、API Key、模型名**：
 
 ```bash
 python3 -m pip install hermes-agent==0.19.0
 git clone https://github.com/TLcmmmm/hermes-unrestricted.git
 cd hermes-unrestricted
-cp .env.example .env   # 填入你的 key
-./start.sh             # 幂等：补丁 + 人设 + 验证
+cp .env.example .env      # 填入三要素：HERMES_BASE_URL / HERMES_API_KEY / HERMES_MODEL
+./start.sh                # 自动打补丁 + 部署人设 + 生成 config.yaml + 验证（幂等）
+```
+
+`start.sh` 会读取 `.env` 的三要素自动生成 `~/.hermes/config.yaml`（若已有配置则不覆盖）。手动配置等价于：
+
+```yaml
+custom_providers:
+- name: auto              # 供应商名（start.sh 自动生成时为 auto）
+  base_url: https://你的端点/v1   # ← 注意必须带 /v1
+  api_key: 你的_key
+  api_mode: chat_completions
+  models:
+    my-model:
+      name: my-model
+  model: my-model
+model:
+  default: my-model
+  provider: auto
+```
+
+> **注意：`base_url` 必须包含 `/v1`** —— 缺失时服务器返回 HTML 页面（而非 SSE），表现为空流错误。
+
+命令行指定模型：
+
+```bash
+hermes -z "你的问题" --provider auto -m my-model
 ```
 
 ## 让 AI 帮你部署
 
-把下面这段提示词发给任意 AI 助手（ChatGPT / Claude / Kimi / DeepSeek 等），它会帮你在本机完成部署：
+把下面这段提示词发给任意 AI 助手（ChatGPT / Claude / Kimi / DeepSeek 等），它会帮你在本机完成部署——**你只需提供接口 URL、API Key、模型名三样**：
 
 ```
-帮我部署 github.com/TLcmmmm/hermes-unrestricted：装 hermes-agent==0.19.0，clone 后让用户填 .env 和 ~/.hermes/config.yaml（机器人 token、供应商 key/端点/模型名、代理），执行 bash start.sh，验证 hermes -z "在吗" 回复「海鸥在线」，可选接线 Telegram（bash start.sh tg-daemon），报错先排查网络/依赖再继续，完成后中文汇报结果。
+帮我部署 github.com/TLcmmmm/hermes-unrestricted。先问我拿三样：模型接口 URL、API Key、模型名，然后：装 hermes-agent==0.19.0 → clone → 把三要素写进 .env → bash start.sh → 验证 hermes -z "在吗" 回复「海鸥在线」→ 可选接线 Telegram（bash start.sh tg-daemon，需用户另给 bot token 和代理）→ 报错先排查网络/依赖，完成后中文汇报。
 ```
 
 > 提示：AI 助手需要能执行终端命令才能自动完成；若它只能给建议，把它的输出当作操作指引手动执行即可。

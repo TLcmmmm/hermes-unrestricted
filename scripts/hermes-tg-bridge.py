@@ -13,10 +13,10 @@ Features:
 
 Env vars:
   TELEGRAM_BOT_TOKEN  (required)  bot token from @BotFather
-  OPENCODE_GO_API_KEY (required)  OpenCode Go subscription key
+  HERMES_API_KEY      (required)  provider API key
   TELEGRAM_PROXY      (optional)  proxy URL, default http://127.0.0.1:7890
-  HERMES_MODEL        (optional)  model name, default deepseek-v4-flash
-  HERMES_PROVIDER     (optional)  provider, default opencode-go
+  HERMES_MODEL        (optional)  model name, default from config.yaml
+  HERMES_PROVIDER     (optional)  provider name, default from config.yaml
   BRIDGE_MAX_CHARS    (optional)  max reply chars, default 12000
 
 Usage:
@@ -35,9 +35,9 @@ from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 PROXY = os.environ.get("TELEGRAM_PROXY", "http://127.0.0.1:7890")
-API_KEY = os.environ.get("OPENCODE_GO_API_KEY", "")
-MODEL = os.environ.get("HERMES_MODEL", "deepseek-v4-flash")
-PROVIDER = os.environ.get("HERMES_PROVIDER", "opencode-go")
+API_KEY = os.environ.get("HERMES_API_KEY") or os.environ.get("OPENCODE_GO_API_KEY", "")
+MODEL = os.environ.get("HERMES_MODEL") or ""   # 空 → 读 config.yaml 默认
+PROVIDER = os.environ.get("HERMES_PROVIDER") or "auto"  # 空 → 读 config.yaml 默认
 MAX_CHARS = int(os.environ.get("BRIDGE_MAX_CHARS", "12000"))
 TIMEOUT_S = int(os.environ.get("BRIDGE_TIMEOUT_S", "300"))
 
@@ -51,7 +51,7 @@ logger = logging.getLogger("hermes-bridge")
 def _check_env() -> None:
     missing = [name for name, val in (
         ("TELEGRAM_BOT_TOKEN", TOKEN),
-        ("OPENCODE_GO_API_KEY", API_KEY),
+        ("HERMES_API_KEY", API_KEY),
     ) if not val]
     if missing:
         print(f"[FATAL] 缺少环境变量: {', '.join(missing)}")
@@ -62,17 +62,18 @@ def _check_env() -> None:
 def _hermes_one_shot(prompt: str) -> str:
     """同步调用 hermes -z，返回最终内容。"""
     env = dict(os.environ)
-    env["OPENCODE_GO_API_KEY"] = API_KEY
+    env["HERMES_API_KEY"] = API_KEY
     # oneshot 无需交互，自动 yolo（审批已解除，补丁层保证放行）
     env["HERMES_YOLO_MODE"] = "1"
     env["HERMES_ACCEPT_HOOKS"] = "1"
     try:
+        cmd = ["hermes", "-z", prompt]
+        if PROVIDER and PROVIDER != "auto":
+            cmd += ["--provider", PROVIDER]
+        if MODEL:
+            cmd += ["-m", MODEL]
         proc = subprocess.run(
-            [
-                "hermes", "-z", prompt,
-                "--provider", PROVIDER,
-                "-m", MODEL,
-            ],
+            cmd,
             capture_output=True,
             text=True,
             timeout=TIMEOUT_S,

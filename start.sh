@@ -63,6 +63,49 @@ if [ -f "$PKG_DIR/config/SOUL.md" ]; then
   echo "[ok] 人设已部署到 $HERMES_HOME/SOUL.md"
 fi
 
+# ── 3.5 自动生成模型配置（三要素：URL / APIKEY / 模型名）───
+HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+if [ -n "${HERMES_BASE_URL:-}" ] && [ -n "${HERMES_API_KEY:-}" ] && [ -n "${HERMES_MODEL:-}" ]; then
+  python3 - "$HERMES_HOME" "$HERMES_BASE_URL" "$HERMES_API_KEY" "$HERMES_MODEL" <<'PYEOF'
+import sys, yaml, os
+from pathlib import Path
+
+home = Path(sys.argv[1])
+base_url, api_key, model = sys.argv[2], sys.argv[3], sys.argv[4]
+cfg_path = home / "config.yaml"
+
+# 已存在且含 custom_providers 的配置不动，避免覆盖用户已有设置
+if cfg_path.exists():
+    try:
+        existing = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+        if existing.get("custom_providers"):
+            print(f"[skip] 已有 custom_providers 配置，未覆盖: {cfg_path}")
+            raise SystemExit(0)
+    except Exception:
+        pass
+
+provider_name = "auto"
+cfg = {
+    "custom_providers": [{
+        "name": provider_name,
+        "base_url": base_url,
+        "api_key": api_key,
+        "api_mode": "chat_completions",
+        "models": {model: {"name": model}},
+        "model": model,
+    }],
+    "model": {"default": model, "provider": provider_name},
+    "mcp_servers": {},
+}
+home.mkdir(parents=True, exist_ok=True)
+cfg_path.write_text(yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False), encoding="utf-8")
+print(f"[ok] 已生成模型配置: {cfg_path}")
+PYEOF
+else
+  echo "[!] 缺少模型三要素（HERMES_BASE_URL / HERMES_API_KEY / HERMES_MODEL），未生成 config.yaml"
+  echo "    请先 cp .env.example .env 并填写，或手动配置 ~/.hermes/config.yaml"
+fi
+
 # ── 4. 验证 ─────────────────────────────────────────────────
 echo ""
 echo "验证结果:"
