@@ -97,7 +97,7 @@ hermes -z "你的问题" --provider auto -m my-model
 把下面这段提示词发给任意 AI 助手（ChatGPT / Claude / Kimi / DeepSeek 等），它会帮你在本机完成部署——**你只需提供接口 URL、API Key、模型名三样**：
 
 ```
-帮我部署 github.com/TLcmmmm/hermes-unrestricted。先问我拿三样：模型接口 URL、API Key、模型名，然后：装 hermes-agent==0.19.0 → clone → 把三要素写进 .env → bash start.sh → 验证 hermes -z "在吗" 回复「海鸥在线」→ 可选接线 Telegram（bash start.sh tg-daemon，需用户另给 bot token 和代理）→ 报错先排查网络/依赖，完成后中文汇报。
+帮我部署 github.com/TLcmmmm/hermes-unrestricted。先问我拿三样：模型接口 URL、API Key、模型名，然后：装 hermes-agent==0.19.0 → clone → 把三要素写进 .env → bash start.sh → 验证 hermes -z "在吗" 回复「海鸥在线」→ 报错先排查网络/依赖，完成后中文汇报。
 ```
 
 > 提示：AI 助手需要能执行终端命令才能自动完成；若它只能给建议，把它的输出当作操作指引手动执行即可。
