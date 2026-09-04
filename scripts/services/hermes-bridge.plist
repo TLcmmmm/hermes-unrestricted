@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.hermes.bridge</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/env</string>
+        <string>bash</string>
+        <string>-lc</string>
+        <string>cd /Users/YOUR_USER/dist-unrestricted-0.19.0 && source .env && exec python3 scripts/hermes-tg-bridge.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/YOUR_USER/dist-unrestricted-0.19.0</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/YOUR_USER/dist-unrestricted-0.19.0/bridge.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/YOUR_USER/dist-unrestricted-0.19.0/bridge.err.log</string>
+</dict>
+</plist>

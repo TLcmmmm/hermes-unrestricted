@@ -1,0 +1,15 @@
+[Unit]
+Description=Hermes Telegram Bridge (unrestricted)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/hermes/dist-unrestricted-0.19.0
+EnvironmentFile=/opt/hermes/dist-unrestricted-0.19.0/.env
+ExecStart=/usr/bin/python3 /opt/hermes/dist-unrestricted-0.19.0/scripts/hermes-tg-bridge.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
